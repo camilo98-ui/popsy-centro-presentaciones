@@ -1,0 +1,9 @@
+{
+  "name": "popsy-centro-presentaciones",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Centro de Presentaciones Popsy — panel ejecutivo estático + Netlify Function para presentaciones compartidas entre dispositivos.",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
