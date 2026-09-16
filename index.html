@@ -742,7 +742,7 @@ body{font-family:var(--f);background:#F1F4F9;color:var(--ink);-webkit-font-smoot
                    to{opacity:1;transform:none;filter:blur(0px)}}
 
 /* ---- tarjetas: elevacion, escala y brillo con presencia fuerte ---- */
-.tile,.hcard2,.pfx,.card,.mcard,.pres,.cmptile{
+.tile,.hcard2,.pfx,.card,.mcard,.cmptile{
   will-change:transform;
   transition:transform var(--m-md) var(--m-spring),
              box-shadow var(--m-md) var(--m-ease),
@@ -2401,9 +2401,17 @@ function allLocal(){return new Promise(res=>{ if(!DB.ok)return res([...DB.mem]);
   const r=tx('readonly').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>res([]);});}
 function delLocal(id){return new Promise(res=>{ if(!DB.ok){DB.mem=DB.mem.filter(x=>x.id!==id);return res(true);}
   const r=tx('readwrite').delete(id);r.onsuccess=()=>res(true);r.onerror=()=>res(false);});}
+function getLocal(id){return new Promise(res=>{ if(!DB.ok)return res(DB.mem.find(x=>x.id===id)||null);
+  const r=tx('readonly').get(id);r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null);});}
 /* Espejo local best-effort de lo que llega de la nube (para que "sin internet" siga
-   mostrando lo último visto) — nunca bloquea ni interrumpe si algo falla. */
-function mirrorLocal(items){ (async()=>{ try{ for(const it of items) await putLocal(it); }catch(e){} })(); }
+   mostrando lo último visto) — nunca bloquea ni interrumpe si algo falla. La lista
+   liviana que manda el servidor no trae el html completo de cada presentacion: si ya
+   habia una copia local con el contenido descargado, se conserva en vez de pisarla
+   con la version liviana (si no, "sin internet" se quedaria sin poder abrir nada). */
+function mirrorLocal(items){ (async()=>{ try{ for(const it of items){
+    const prev=await getLocal(it.id);
+    await putLocal(prev&&prev.html&&!it.html?{...it,html:prev.html}:it);
+  } }catch(e){} })(); }
 /* Reconciliación: justo después de guardar/eliminar algo, un GET inmediato a la nube
    puede tardar unos segundos en reflejarlo (propagación normal de un almacenamiento
    distribuido) — sin esto, lo recién subido "desaparecería" un instante después de
@@ -2432,6 +2440,25 @@ async function all(){
     }
   }catch(e){ /* sin conexión: se cae al respaldo local de abajo */ }
   return allLocal();
+}
+/* La lista general (ITEMS) viaja liviana -- sin el html completo de cada
+   presentacion -- para que abrir el panel no tenga que bajar TODO el
+   historial de una vez. El html real solo se trae cuando de verdad hace
+   falta: al abrir, descargar o mover una presentacion puntual. */
+async function ensureHtml(it){
+  if(it.html)return it.html;
+  try{
+    const res=await fetch(`${ITEMS_API}?id=${encodeURIComponent(it.id)}`,{cache:'no-store'});
+    if(res.ok){
+      const full=await res.json();
+      if(full&&full.html){ it.html=full.html; putLocal(it); return it.html; }
+    }
+  }catch(e){}
+  try{
+    const local=await getLocal(it.id);
+    if(local&&local.html){ it.html=local.html; return it.html; }
+  }catch(e){}
+  return null;
 }
 async function del(id){
   await delLocal(id);
@@ -4294,6 +4321,7 @@ document.addEventListener('click',async e=>{
         {title:'Eliminar presentación',okLabel:'Eliminar',danger:true}); }
       catch(err){ ok=false; }
       if(ok){
+        await ensureHtml(it);   /* la papelera necesita el html completo para poder recuperarla */
         PAPELERA=JSON.parse(JSON.stringify(it));   /* copia completa por si se arrepiente */
         try{ await del(it.id); }catch(err){}
         ITEMS=ITEMS.filter(x=>x.id!==it.id);
@@ -4307,16 +4335,24 @@ document.addEventListener('click',async e=>{
       if(txt==null)return;
       const hit=bestDistrito(txt);
       if(!hit){toast('No encontré ese distrito. Verifica el nombre exacto.');return;}
+      const html=await ensureHtml(it);
+      if(!html){toast('No se pudo mover: sin conexión y sin copia local de esta presentación.');return;}
       it.distrito=hit;put(it).then(()=>{SEL=hit;load();toast('Movido a '+hit);});return;}}
 });
-function bajar(it){const b=new Blob([it.html],{type:'text/html;charset=utf-8'});
+async function bajar(it){
+  const html=await ensureHtml(it);
+  if(!html){toast('No se pudo descargar: sin conexión y sin copia local de esta presentación.');return;}
+  const b=new Blob([html],{type:'text/html;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=it.nombre||'presentacion.html';
   document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);
   toast('Descargando «'+(it.titulo||it.nombre||'presentación')+'»');}
 let VER=null;
-function abrir(it){VER=it;$('#vTitle').textContent=it.titulo||('Informe semanal · '+it.distrito);
+async function abrir(it){
+  const html=await ensureHtml(it);
+  if(!html){toast('No se pudo abrir: sin conexión y sin copia local de esta presentación.');return;}
+  VER=it;$('#vTitle').textContent=it.titulo||('Informe semanal · '+it.distrito);
   $('#vSub').textContent=it.distrito+' · semana '+it.semana+' · '+new Date(it.fecha+'T00:00:00').toLocaleDateString('es-CO');
-  $('#vFrame').srcdoc=it.html;
+  $('#vFrame').srcdoc=html;
   const v=$('#viewer');v.classList.add('on');
   if(window.gsap){
     gsap.set(v,{opacity:0});gsap.set(v.querySelector('#vFrame'),{scale:.82,opacity:0,rotateX:8,filter:'blur(10px)'});
