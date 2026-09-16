@@ -4595,7 +4595,16 @@ function playSplash(){
     const wrap=document.getElementById('cine');
     if(!wrap){resolve();return;}
     const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if(reduce||!window.gsap){wrap.style.display='none';resolve();return;}
+    /* si la pestaña esta en segundo plano, los timers/animaciones (rAF) del
+       navegador se pausan o se frenan muchisimo -- eso dejaba la intro (y con
+       ella TODA la carga real de los datos, que esperaba a que terminara)
+       colgada varios segundos. Si no se puede ver bien, no tiene sentido
+       animarla: se salta directo. Tambien se salta si ya se vio en esta
+       pestaña, para no repetirla en cada recarga. */
+    let yaVista=false;
+    try{yaVista=sessionStorage.getItem('popsy_splash_vista')==='1';}catch(e){}
+    if(reduce||!window.gsap||document.hidden||yaVista){wrap.style.display='none';resolve();return;}
+    try{sessionStorage.setItem('popsy_splash_vista','1');}catch(e){}
 
     const bg=wrap.querySelector('.cine-bg');
     const stageEl=document.getElementById('cineStage');
@@ -4624,10 +4633,15 @@ function playSplash(){
       });
     }
     if(!reduce)window.addEventListener('mousemove',onTilt);
+    /* si la pestaña pasa a segundo plano a mitad de la intro, cerrarla ya:
+       seguir animando algo que nadie ve solo retrasa mostrar los datos reales. */
+    function onVisibility(){if(document.hidden)cerrar();}
+    document.addEventListener('visibilitychange',onVisibility);
 
     function cerrar(){
       if(cerrado)return;cerrado=true;
       window.removeEventListener('mousemove',onTilt);
+      document.removeEventListener('visibilitychange',onVisibility);
       if(tiltRAF)cancelAnimationFrame(tiltRAF);
       if(tl)tl.kill();if(raf)cancelAnimationFrame(raf);
       /* el sonido se apaga con la imagen, nunca queda colgando */
@@ -5206,10 +5220,15 @@ function playSplash(){
   });
 }
 (async function(){
-  await playSplash();
+  /* la intro es decorativa: los datos reales se cargan EN PARALELO con ella,
+     no despues -- asi, tanto si la intro se salta (pestaña en 2do plano, ya
+     vista) como si se ve completa, el panel aparece con todo listo, sin
+     esperar una cosa detras de la otra. */
+  const splashP=playSplash();
   await openDB();
   if(!DB.ok)toast('Este navegador no permite guardar en el equipo: usa Respaldo para no perder los archivos');
   await load();
+  await splashP;
 })();
 </script>
 </body>
