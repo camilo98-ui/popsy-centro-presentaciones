@@ -2249,7 +2249,11 @@ function premPrompt(msg,defVal){
   });
 }
 const MOTION={
-  micro:.22, panel:.5, modal:.75, view:1.15, present:1.4,
+  /* duraciones recortadas a proposito: las de antes (view 1.15s, present 1.4s,
+     con bloqueo de navegacion de hasta 1.9s) eran la causa directa de que
+     cada cambio de vista o cada informe abierto se sintiera lento, sin
+     importar que tan rapido respondiera el servidor. */
+  micro:.15, panel:.28, modal:.32, view:.4, present:.42,
   ease:'power3.out', ease2:'power2.inOut', easeIn:'power2.in',
   pop:'back.out(1.8)'
 };
@@ -2618,17 +2622,20 @@ function setView(v){
   if(!window.gsap||!outEl||outEl.classList.contains('hidden')){applyView(v);return;}
   viewSwitching=true;
   clearTimeout(setView._t);
-  setView._t=setTimeout(()=>{viewSwitching=false;},1900);
-  /* salida: se aleja en profundidad, gira levemente y se desenfoca; entrada: camara que se acerca */
-  gsap.to(outEl,{opacity:0,y:-46,scale:.9,rotateX:6,filter:'blur(14px)',
+  setView._t=setTimeout(()=>{viewSwitching=false;},700);
+  /* salida/entrada sin desenfoque: animar filter:blur sobre toda la vista
+     (un contenedor gigante) es de lo mas caro de renderizar que hay, y se
+     disparaba en cada clic del menu -- por eso la navegacion se sentia lenta
+     y ademas quedaba bloqueada casi 2 segundos por cada cambio. */
+  gsap.to(outEl,{opacity:0,y:-24,scale:.96,
     duration:MOTION.view*.4,ease:MOTION.easeIn,transformOrigin:'50% 0%',onComplete:()=>{
-    gsap.set(outEl,{y:0,scale:1,rotateX:0,filter:'blur(0px)'});
+    gsap.set(outEl,{y:0,scale:1});
     applyView(v);
     const inEl=$(VIEWELS[v]);
-    if(inEl){gsap.fromTo(inEl,{opacity:0,y:64,scale:.92,rotateX:-6,filter:'blur(16px)'},
-      {opacity:1,y:0,scale:1,rotateX:0,filter:'blur(0px)',duration:MOTION.view*.75,ease:'back.out(1.5)',
+    if(inEl){gsap.fromTo(inEl,{opacity:0,y:28,scale:.97},
+      {opacity:1,y:0,scale:1,duration:MOTION.view*.75,ease:'back.out(1.5)',
        transformOrigin:'50% 0%',
-       onComplete:()=>{viewSwitching=false;gsap.set(inEl,{clearProps:'filter,transform'});}});}
+       onComplete:()=>{viewSwitching=false;gsap.set(inEl,{clearProps:'transform'});}});}
     else viewSwitching=false;
   }});
 }
@@ -2671,12 +2678,15 @@ function animateEntrance(v){
     root.querySelectorAll('.month,.empty,.noreport')
   ].map(nl=>[...nl]).filter(a=>a.length);
   if(!groups.length)return;
-  const tl=gsap.timeline({defaults:{ease:'back.out(1.7)'}});
+  const tl=gsap.timeline({defaults:{ease:'power2.out'}});
   groups.forEach((g,gi)=>{
-    gsap.set(g,{opacity:0,y:56,scale:.88,rotate:gi%2?-1.2:1.2,filter:'blur(6px)'});
-    tl.to(g,{opacity:1,y:0,scale:1,rotate:0,filter:'blur(0px)',duration:.85,stagger:.11},gi*.16);
+    /* sin desenfoque: animarlo en decenas de tarjetas a la vez (una por cada
+       kpi/tarjeta del tablero) era buena parte de por que cada cambio de
+       vista se sentia pesado. */
+    gsap.set(g,{opacity:0,y:16,scale:.97});
+    tl.to(g,{opacity:1,y:0,scale:1,duration:.32,stagger:.035},gi*.06);
   });
-  setTimeout(()=>countUpAll(root),220);
+  setTimeout(()=>countUpAll(root),120);
 }
 /* la navegacion va por delegacion: nunca depende de que el nodo
    exista en el momento exacto de enlazar */
@@ -4355,13 +4365,15 @@ async function abrir(it){
   $('#vFrame').srcdoc=html;
   const v=$('#viewer');v.classList.add('on');
   if(window.gsap){
-    gsap.set(v,{opacity:0});gsap.set(v.querySelector('#vFrame'),{scale:.82,opacity:0,rotateX:8,filter:'blur(10px)'});
-    document.body.style.filter='blur(0px)';
+    /* antes esto desenfocaba TODA la pagina (document.body) cada vez que se
+       abria una presentacion -- la accion mas frecuente de toda la app --
+       ademas de desenfocar el propio visor. Se quita el desenfoque por
+       completo: el visor sigue entrando con una animacion suave, solo que
+       ya no cuesta re-renderizar la pagina completa en cada apertura. */
+    gsap.set(v,{opacity:0});gsap.set(v.querySelector('#vFrame'),{scale:.94,opacity:0});
     const tl=gsap.timeline();
-    tl.to(document.body,{filter:'blur(14px)',duration:.34,ease:'power2.out'},0)
-      .to(v,{opacity:1,duration:.34,ease:'power2.out'},.05)
-      .to(v.querySelector('#vFrame'),{scale:1,opacity:1,rotateX:0,filter:'blur(0px)',duration:.7,ease:'back.out(1.6)'},.1)
-      .set(document.body,{filter:'none'});
+    tl.to(v,{opacity:1,duration:.22,ease:'power2.out'})
+      .to(v.querySelector('#vFrame'),{scale:1,opacity:1,duration:.28,ease:'back.out(1.6)'},.04);
   }
   const hint=$('#vHint');
   if(hint){hint.classList.add('on');clearTimeout(hint._t);
@@ -4408,8 +4420,8 @@ $('#vClose').onclick=()=>{
   if(window.gsap){
     /* salida simetrica a la entrada: la pantalla se apaga, no solo desaparece */
     const tl=gsap.timeline({onComplete:done,defaults:{ease:'power2.in'}});
-    tl.to(v.querySelector('#vFrame'),{scale:.92,opacity:0,rotateX:-6,filter:'blur(10px)',duration:.4},0)
-      .to(v,{opacity:0,duration:.3},.1);
+    tl.to(v.querySelector('#vFrame'),{scale:.92,opacity:0,duration:.22},0)
+      .to(v,{opacity:0,duration:.2},.06);
   }else done();
 };
 $('#vDown').onclick=()=>VER&&bajar(VER);
@@ -4467,9 +4479,9 @@ function openGenerator(){
       const tl=gsap.timeline({defaults:{ease:'power3.out'},onComplete:loadGeneratorFrame});
       /* el portal cede el paso: retrocede y se desenfoca mientras entra el
          generador. La sensacion es de entrar, no de abrir otra pagina. */
-      tl.to('.app',{scale:.93,opacity:.4,filter:'blur(9px)',duration:.5,ease:'power2.inOut'},0)
-        .to(backdrop,{opacity:1,duration:.42,ease:'power2.out'},0)
-        .to(panel,{opacity:1,scale:1,y:0,rotateX:0,duration:.85,ease:'back.out(1.6)'},.08);
+      tl.to('.app',{scale:.97,opacity:.55,duration:.3,ease:'power2.inOut'},0)
+        .to(backdrop,{opacity:1,duration:.28,ease:'power2.out'},0)
+        .to(panel,{opacity:1,scale:1,y:0,rotateX:0,duration:.4,ease:'back.out(1.6)'},.05);
     }else{
       backdrop.style.opacity='1';panel.style.opacity='1';panel.style.transform='none';
       loadGeneratorFrame();
@@ -4483,9 +4495,9 @@ function closeGenerator(){
     toast('¿Ya descargaste el informe? Súbelo al distrito que corresponda');};
   if(window.gsap){
     const tl=gsap.timeline({onComplete:done,defaults:{ease:'power2.in'}});
-    tl.to(panel,{opacity:0,scale:.88,y:28,duration:.38},0)
-      .to(backdrop,{opacity:0,duration:.32},.05)
-      .to('.app',{scale:1,opacity:1,filter:'blur(0px)',duration:.48,ease:'back.out(1.4)'},.04);
+    tl.to(panel,{opacity:0,scale:.88,y:28,duration:.24},0)
+      .to(backdrop,{opacity:0,duration:.2},.04)
+      .to('.app',{scale:1,opacity:1,duration:.26,ease:'back.out(1.4)'},.03);
   }else done();
 }
 $('#bGen').onclick=e=>{spawnRipple(e);openGenerator();};
@@ -4576,16 +4588,24 @@ function spawnRipple(e){
   }
   function dibujar(){
     ctx.clearRect(0,0,W,H);
-    ctx.filter=pocos?'blur(8px)':'blur(14px)';
+    /* el degradado de cada cinta ya se desvanece solo en los bordes; el
+       filtro de desenfoque del canvas se volvia a calcular sobre TODO el
+       lienzo, en cada frame, para siempre mientras la app estuviera
+       abierta -- una de las operaciones mas caras que hay en canvas 2D,
+       pagandose de fondo en TODA la sesion, no solo al cargar. Se quita:
+       mismo efecto visual (las cintas ya nacen difuminadas por el
+       degradado), sin ese costo permanente. */
     const t=performance.now()/1000;
     for(let i=0;i<cintas.length;i++)cinta(cintas[i],t);
-    ctx.filter='none';
   }
   if(reduce){dibujar();return;}
-  /* 30 fps son suficientes para un movimiento tan lento y liberan CPU */
-  let ultimo=0;
+  /* 30 fps son suficientes para un movimiento tan lento y liberan CPU;
+     y se detiene del todo si la pestaña pasa a 2do plano, en vez de
+     seguir dibujando algo que nadie esta viendo. */
+  let ultimo=0,activo=true;
+  document.addEventListener('visibilitychange',()=>{activo=!document.hidden;});
   (function bucle(now){
-    if(now-ultimo>33){ultimo=now;dibujar();}
+    if(activo&&now-ultimo>33){ultimo=now;dibujar();}
     requestAnimationFrame(bucle);
   })(0);
 })();
