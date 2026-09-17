@@ -2563,11 +2563,18 @@ function meta(html,fname,fallbackDistrito){
     semana=Math.ceil((((d-ini)/864e5)+ini.getDay()+1)/7);}
   const tm=html.match(/window\.__THUMB__=("(?:[^"\\]|\\.)*")/);
   let thumb='';try{if(tm)thumb=JSON.parse(tm[1]);}catch(e){}
-  /* si el nombre de la zona en el archivo no calza con ningun distrito
-     conocido (o el archivo no trae metadatos), se cae al distrito desde
-     donde se esta subiendo — no a un cajon generico "SIN NOMBRE" donde
-     el gerente despues no lo encuentra. */
-  return {distrito:hit||fallbackDistrito||(mt.zona?mt.zona.toUpperCase():'SIN NOMBRE'),mes:fecha.slice(0,7),semana,fecha,
+  /* el boton "Subir presentacion" y el recuadro de arrastrar solo existen
+     dentro de la vista de UN distrito puntual -- fallbackDistrito (SEL) es
+     siempre el distrito exacto que el gerente eligio y donde hizo clic en
+     subir. Eso manda siempre que exista: antes se dejaba ganar a la zona
+     grabada dentro del archivo (mt.zona), que en la mayoria de informes
+     sigue siendo el placeholder por defecto del generador ("BTA
+     NOROCCIDENTE") porque nadie lo edita -- por eso todo terminaba
+     cayendo siempre ahi sin importar a que distrito se subiera. Solo si
+     no hay un distrito de destino explicito (fallbackDistrito vacio) se
+     intenta adivinar por la zona del archivo, y si tampoco calza con
+     ningun distrito conocido, se cae a "SIN NOMBRE". */
+  return {distrito:fallbackDistrito||hit||(mt.zona?mt.zona.toUpperCase():'SIN NOMBRE'),mes:fecha.slice(0,7),semana,fecha,
     gerente:mt.gerente||'',titulo:mt.titulo||'',kpi:kpiFrom(S),thumb};
 }
 async function ingest(files){
