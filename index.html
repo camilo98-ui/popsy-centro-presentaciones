@@ -4717,11 +4717,18 @@ function playSplash(){
       comp.connect(MASTER);MASTER.connect(AC.destination);
       BUS=AC.createGain();BUS.gain.value=1;BUS.connect(comp);
       try{
-        /* pre-delay + cola larga: la sala se percibe grande */
+        /* pre-delay + cola larga: la sala se percibe grande.
+           El buffer del impulso se genera a una frecuencia de muestreo
+           reducida (el ConvolverNode lo re-muestrea solo a la frecuencia
+           real): una cola larga y difusa como esta no pierde nada de
+           calidad perceptible, y así se evita bloquear el hilo principal
+           calculando cientos de miles de muestras justo cuando arranca
+           la animación -- eso era lo que hacía que la caída de las letras
+           empezara con un tranco. */
         const pre=AC.createDelay(.5);pre.delayTime.value=.045;
         const rev=AC.createConvolver();
-        const dur=4.2,len=Math.floor(AC.sampleRate*dur);
-        const buf=AC.createBuffer(2,len,AC.sampleRate);
+        const dur=4.2,irRate=Math.max(6000,Math.floor(AC.sampleRate/4)),len=Math.floor(irRate*dur);
+        const buf=AC.createBuffer(2,len,irRate);
         for(let ch=0;ch<2;ch++){
           const d=buf.getChannelData(ch);
           for(let k=0;k<len;k++){
@@ -4749,10 +4756,27 @@ function playSplash(){
         nodo.connect(g);g.connect(WET);
       }
     }
+    /* Los efectos de la coreografia (cada letra al caer, el barrido, el
+       polvo final) reusan siempre los mismos pares (dur,curva) de ruido
+       -- por ejemplo, el golpe de cada una de las letras suena con
+       exactamente los mismos parametros. Antes cada llamada volvia a
+       generar el buffer de ceros calculando miles de muestras con
+       Math.random/Math.pow, justo en el instante en que cada letra debia
+       verse aterrizando -- eso producia el tranco visible en cada golpe.
+       Ahora el buffer se calcula una sola vez por combinacion y se
+       reutiliza (un mismo AudioBuffer puede alimentar muchos
+       AudioBufferSourceNode distintos), sin cambiar como suena. */
+    const _ruidoCache=new Map();
     function ruido(dur,curva){
-      const len=Math.max(1,Math.floor(AC.sampleRate*dur));
-      const buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);
-      for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,curva||3);
+      const key=dur+'|'+(curva||3);
+      let buf=_ruidoCache.get(key);
+      if(!buf){
+        const len=Math.max(1,Math.floor(AC.sampleRate*dur));
+        buf=AC.createBuffer(1,len,AC.sampleRate);
+        const d=buf.getChannelData(0);
+        for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,curva||3);
+        _ruidoCache.set(key,buf);
+      }
       const s=AC.createBufferSource();s.buffer=buf;return s;
     }
     /* el colchon se agacha en cada golpe: hace que el impacto pegue */
@@ -5105,10 +5129,28 @@ function playSplash(){
     /* ---------- desintegracion del texto ---------- */
     function disolver(){
       if(!ctx)return;
-      const off=document.createElement('canvas');
-      off.width=Math.floor(W);off.height=Math.floor(H);
-      const o=off.getContext('2d');
       const wr=wrap.getBoundingClientRect();
+      /* Antes el lienzo auxiliar y el getImageData cubrian toda la
+         pantalla (W x H), aunque la palabra solo ocupa una franja
+         pequeña en el centro -- eso hacia leer y recorrer millones de
+         pixeles de mas justo en el instante en que el texto debia
+         empezar a desintegrarse, y se sentia como que la animacion se
+         quedaba pegada ahi. Ahora el lienzo auxiliar solo cubre el
+         recuadro real de la palabra (con un margen), asi que se lee y
+         recorre solo lo que realmente hace falta. */
+      let bx0=Infinity,by0=Infinity,bx1=-Infinity,by1=-Infinity;
+      piezas.forEach(el=>{
+        const r=el.getBoundingClientRect();
+        bx0=Math.min(bx0,r.left);by0=Math.min(by0,r.top);
+        bx1=Math.max(bx1,r.right);by1=Math.max(by1,r.bottom);
+      });
+      const pad=24;
+      bx0=Math.max(0,bx0-wr.left-pad);by0=Math.max(0,by0-wr.top-pad);
+      bx1=Math.min(W,bx1-wr.left+pad);by1=Math.min(H,by1-wr.top+pad);
+      const bw=Math.max(1,Math.ceil(bx1-bx0)),bh=Math.max(1,Math.ceil(by1-by0));
+      const off=document.createElement('canvas');
+      off.width=bw;off.height=bh;
+      const o=off.getContext('2d');
       const cs=getComputedStyle(word);
       o.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;
       o.textBaseline='alphabetic';o.fillStyle='#000';
@@ -5118,9 +5160,9 @@ function playSplash(){
           /* las tres barras magenta tambien se deshacen */
           [...el.querySelectorAll('i')].forEach(b=>{
             const rb=b.getBoundingClientRect();
-            o.fillRect(rb.left-wr.left,rb.top-wr.top,rb.width,Math.max(1,rb.height));});
+            o.fillRect(rb.left-wr.left-bx0,rb.top-wr.top-by0,rb.width,Math.max(1,rb.height));});
         }else{
-          o.fillText(el.textContent,r.left-wr.left,r.bottom-wr.top-r.height*.14);
+          o.fillText(el.textContent,r.left-wr.left-bx0,r.bottom-wr.top-by0-r.height*.14);
         }
       });
       let data=null;
@@ -5129,8 +5171,9 @@ function playSplash(){
       const step=pocos?4:3,P=[];
       for(let y=0;y<off.height;y+=step)for(let x=0;x<off.width;x+=step){
         if(data[(y*off.width+x)*4+3]>110){
-          const dx=x-W/2,dy=y-H*.46,d=Math.hypot(dx,dy)||1;
-          P.push({x,y,
+          const gx=x+bx0,gy=y+by0;
+          const dx=gx-W/2,dy=gy-H*.46,d=Math.hypot(dx,dy)||1;
+          P.push({x:gx,y:gy,
             vx:dx/d*(.22+Math.random()*1.0)+(Math.random()-.5)*.35,
             vy:dy/d*(.18+Math.random()*.75)-(.35+Math.random()*.7),
             r:.45+Math.random()*.75,life:1,dec:.009+Math.random()*.011,
