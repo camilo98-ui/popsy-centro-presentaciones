@@ -4687,13 +4687,16 @@ function playSplash(){
         if(MASTER&&AC){
           MASTER.gain.cancelScheduledValues(AC.currentTime);
           MASTER.gain.setValueAtTime(Math.max(.0002,MASTER.gain.value),AC.currentTime);
-          MASTER.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.45);
+          MASTER.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.25);
         }
-        setTimeout(()=>{try{if(AC&&AC.close)AC.close();}catch(e){}},900);
+        setTimeout(()=>{try{if(AC&&AC.close)AC.close();}catch(e){}},500);
       }catch(e){}
-      gsap.to(wrap,{opacity:0,scale:1.18,filter:'blur(14px)',duration:.5,ease:'power2.inOut',
+      /* este cierre tambien se acorto junto con el resto de la intro:
+         antes tardaba .5s en desvanecerse mas .9s en que aparecieran los
+         datos reales -- ahora el dashboard queda visible mucho antes. */
+      gsap.to(wrap,{opacity:0,scale:1.18,filter:'blur(14px)',duration:.28,ease:'power2.inOut',
         onComplete:()=>{wrap.style.display='none';resolve();}});
-      try{gsap.fromTo('.app',{opacity:0,y:38,scale:1.03,filter:'blur(8px)'},{opacity:1,y:0,scale:1,filter:'blur(0px)',duration:.9,ease:'power3.out',delay:.06,clearProps:'filter'});}catch(e){}
+      try{gsap.fromTo('.app',{opacity:0,y:38,scale:1.03,filter:'blur(8px)'},{opacity:1,y:0,scale:1,filter:'blur(0px)',duration:.5,ease:'power3.out',delay:.03,clearProps:'filter'});}catch(e){}
     }
     skip.onclick=cerrar;
 
@@ -5245,20 +5248,26 @@ function playSplash(){
     /* enfoque de camara: arranca un poco cerca y desenfocado, como un rack focus real */
     gsap.set(stageEl,{scale:1.18,filter:'blur(18px)'});
 
+    /* La coreografia original duraba cerca de 3.8s de principio a fin --
+       demasiado tiempo forzando al gerente a esperar antes de ver sus
+       datos, sin importar que tan fluida se viera. Aqui se comprime
+       toda la secuencia a un poco mas de la mitad (misma estructura,
+       mismos golpes y el mismo destello, solo mas rapido) para que la
+       intro se sienta agil y no como un obstaculo antes de trabajar. */
     tl=gsap.timeline({onComplete:cerrar});
     tl
-      .add(()=>{drone();riser(1.35);})
-      .to(bg,{opacity:1,duration:.5,ease:'power2.out'})
-      .to(stageEl,{scale:1,filter:'blur(0px)',duration:.7,ease:'power3.out'},0)
-      .to({v:0},{v:1,duration:.5,onUpdate:function(){fadeBg=this.targets()[0].v;}},0)
-      /* cada pieza cae con 120 ms de diferencia y golpea el suelo */
+      .add(()=>{drone();riser(.74);})
+      .to(bg,{opacity:1,duration:.28,ease:'power2.out'})
+      .to(stageEl,{scale:1,filter:'blur(0px)',duration:.39,ease:'power3.out'},0)
+      .to({v:0},{v:1,duration:.28,onUpdate:function(){fadeBg=this.targets()[0].v;}},0)
+      /* cada pieza cae con menos diferencia entre si y golpea el suelo */
       /* caida con aceleracion de gravedad: llega a toda velocidad
          y se detiene de golpe contra el suelo, no frenando antes */
       .to(piezas,{opacity:1,y:0,z:0,scale:1,
         rotationX:0,rotationY:0,rotationZ:0,filter:'blur(0px)',
-        duration:.52,ease:'power1.in',
-        stagger:{each:.075,
-          onStart:function(){if(!cerrado)silbido(.68,
+        duration:.29,ease:'power1.in',
+        stagger:{each:.04,
+          onStart:function(){if(!cerrado)silbido(.37,
             ((piezas.indexOf(this.targets()[0])/(piezas.length-1))*2-1)*.62);},
           onComplete:function(){
           if(cerrado)return;
@@ -5270,34 +5279,34 @@ function playSplash(){
             {scaleY:1,scaleX:1,duration:.34,ease:'power3.out'});
           gsap.delayedCall(.28,()=>el.classList.replace('hit','rest'));
           impacto(el);
-        }}},.28)
+        }}},.15)
       /* pulso de luz cuando la palabra esta completa, con un destello breve */
-      .add(()=>{barrido();},'-=.12')
+      .add(()=>{barrido();},'-=.07')
       .fromTo(pulse,{opacity:1,xPercent:-120},
-        {xPercent:120,duration:.66,ease:'power2.inOut'},'<')
-      .to(pulse,{opacity:0,duration:.2},'-=.14')
-      .fromTo(flash,{opacity:0},{opacity:1,duration:.09,ease:'power1.out'},'<')
-      .to(flash,{opacity:0,duration:.5,ease:'power2.out'},'-=.02')
-      .to(sub,{opacity:1,y:0,duration:.36,ease:'power3.out'},'-=.52')
-      .to(boot,{opacity:1,y:0,duration:.3,ease:'power3.out'},'-=.20')
-      .to(barI,{width:'100%',duration:.52,ease:'power1.inOut'},'-=.16')
-      .to(barD,{left:'186px',duration:.52,ease:'power1.inOut'},'<')
+        {xPercent:120,duration:.36,ease:'power2.inOut'},'<')
+      .to(pulse,{opacity:0,duration:.11,ease:'power2.out'},'-=.08')
+      .fromTo(flash,{opacity:0},{opacity:1,duration:.05,ease:'power1.out'},'<')
+      .to(flash,{opacity:0,duration:.28,ease:'power2.out'},'-=.01')
+      .to(sub,{opacity:1,y:0,duration:.20,ease:'power3.out'},'-=.29')
+      .to(boot,{opacity:1,y:0,duration:.17,ease:'power3.out'},'-=.11')
+      .to(barI,{width:'100%',duration:.29,ease:'power1.inOut'},'-=.09')
+      .to(barD,{left:'186px',duration:.29,ease:'power1.inOut'},'<')
       /* desintegracion continua hacia el dashboard */
       .add(()=>{disolver();sonPolvo();})
-      .to(piezas,{opacity:0,duration:.40,ease:'power2.in',stagger:.012})
-      .to([sub,boot],{opacity:0,y:-6,duration:.32,ease:'power2.in'},'-=.34')
-      .to({v:1},{v:0,duration:.5,onUpdate:function(){fadeBg=this.targets()[0].v;}},'-=.30')
-      .to(bg,{opacity:0,duration:.5,ease:'power2.inOut'},'-=.50')
-      .to({},{duration:.1});
+      .to(piezas,{opacity:0,duration:.22,ease:'power2.in',stagger:.007})
+      .to([sub,boot],{opacity:0,y:-6,duration:.18,ease:'power2.in'},'-=.19')
+      .to({v:1},{v:0,duration:.28,onUpdate:function(){fadeBg=this.targets()[0].v;}},'-=.17')
+      .to(bg,{opacity:0,duration:.28,ease:'power2.inOut'},'-=.28')
+      .to({},{duration:.06});
 
     /* las barras de cada E se dibujan cuando esa pieza asienta */
     piezas.forEach((el,i)=>{
       if(!el.classList.contains('e'))return;
-      setTimeout(()=>{if(!cerrado)el.classList.add('on');},(0.28+i*0.075+0.52)*1000);
+      setTimeout(()=>{if(!cerrado)el.classList.add('on');},(0.15+i*0.04+0.29)*1000);
     });
 
-    setTimeout(()=>skip.classList.add('on'),650);
-    setTimeout(cerrar,5200);
+    setTimeout(()=>skip.classList.add('on'),360);
+    setTimeout(cerrar,2900);
   });
 }
 (async function(){
