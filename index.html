@@ -4634,16 +4634,15 @@ function playSplash(){
        casos reales (pestaña recien creada, ventana en transicion de foco)
        el navegador lo reporta en 'true' por un instante aunque la persona
        SI este viendo la pagina, y saltarse la intro por eso la dejaba sin
-       mostrarse nunca. Por eso ya no se usa para decidir si arranca; solo
-       se usa mas abajo (con el evento visibilitychange) para cortarla si
-       de verdad pasa a 2do plano YA EMPEZADA la animacion, que es un caso
+       mostrarse nunca. Por eso no se usa para decidir si arranca; solo se
+       usa mas abajo (con el evento visibilitychange) para cortarla si de
+       verdad pasa a 2do plano YA EMPEZADA la animacion, que es un caso
        distinto y confiable porque se basa en un cambio real, no en una
-       lectura puntual. Lo que si se respeta es no repetirla en la misma
-       pestaña una vez que ya se vio. */
-    let yaVista=false;
-    try{yaVista=sessionStorage.getItem('popsy_splash_vista')==='1';}catch(e){}
-    if(reduce||!window.gsap||yaVista){wrap.style.display='none';resolve();return;}
-    try{sessionStorage.setItem('popsy_splash_vista','1');}catch(e){}
+       lectura puntual. Antes tambien se saltaba si ya se habia visto una
+       vez en la misma pestaña (sessionStorage) -- eso es justo lo que
+       hacia que, al recargar la pagina, la intro dejara de aparecer: se
+       quita para que la intro se vea siempre al cargar, como debe ser. */
+    if(reduce||!window.gsap){wrap.style.display='none';resolve();return;}
 
     const bg=wrap.querySelector('.cine-bg');
     const stageEl=document.getElementById('cineStage');
