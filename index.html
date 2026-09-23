@@ -2606,7 +2606,10 @@ async function ingest(files){
    ESTADO GLOBAL
 ========================================================= */
 let ITEMS=[],SEL=null,OPEN={},REGOPEN={},VIEW='dash';
-async function load(){ITEMS=await all();ITEMS.sort((a,b)=>(b.mes+String(b.semana).padStart(2,'0'))
+async function load(){ITEMS=await all();
+  /* autocorrige informes ya guardados: aggPart se calculaba mal (dividia por un campo vacio) */
+  ITEMS.forEach(it=>{if(it.kpi)it.kpi.aggPart=it.kpi.ventaAct?it.kpi.aggTot/it.kpi.ventaAct*100:0;});
+  ITEMS.sort((a,b)=>(b.mes+String(b.semana).padStart(2,'0'))
   .localeCompare(a.mes+String(a.semana).padStart(2,'0')));renderAll();}
 
 /* =========================================================
