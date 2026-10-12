@@ -1910,33 +1910,33 @@ button:focus-visible,a:focus-visible,input:focus-visible,[tabindex]:focus-visibl
 .pStamp{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
   font-size:10.5px;font-weight:600;color:var(--ink3);text-align:center}
 
-/* ── VISTA DE DISTRITO · las estadisticas vuelven a ser tarjetas con
-   icono y una barra fina — las de % traen su avance real, el resto
-   trae solo el acento de color, sin inventar un avance que no existe ── */
-.stats{gap:12px;margin-top:18px;border:none;padding:0;
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr))}
+/* ── VISTA DE DISTRITO · solo los indicadores de negocio reales del
+   ultimo informe cargado llegan como tarjeta, con icono y su barra de
+   avance real — nunca se inventa una barra para una metrica que no
+   tiene un avance que mostrar ── */
+.stats{gap:14px;margin-top:18px;border:none;padding:0;display:flex;flex-wrap:wrap}
 .stat{background:#fff;border:1px solid var(--line);border-radius:16px;
-  padding:16px 18px 15px;box-shadow:0 1px 2px rgba(23,35,58,.04),0 8px 18px -14px rgba(23,35,58,.16);
-  position:relative;min-width:0}
-.stat+.stat{border-left:1px solid var(--line);padding-left:18px}
-.stat:before{content:'';display:block;width:30px;height:30px;border-radius:9px;margin-bottom:11px;
+  padding:17px 19px 16px;box-shadow:0 1px 2px rgba(23,35,58,.04),0 8px 18px -14px rgba(23,35,58,.16);
+  position:relative;min-width:168px;flex:1 1 200px;max-width:260px}
+.stat:before{content:'';display:block;width:30px;height:30px;border-radius:9px;margin-bottom:12px;
   background-color:rgba(196,23,107,.09);background-repeat:no-repeat;background-position:center;background-size:15px 15px}
 .stat.ok:before{background-color:rgba(30,158,98,.12)}
 .stat.bad:before{background-color:rgba(208,43,54,.10)}
-.stat b{font-size:21px;font-weight:700;letter-spacing:-.6px;color:var(--ink);display:block}
+.stat.warn:before{background-color:rgba(154,110,12,.10)}
+.stat b{font-size:22px;font-weight:700;letter-spacing:-.6px;color:var(--ink);display:block}
 .stat.ok b{color:#177E4E}
 .stat.bad b{color:#B32530}
-.stat span{font-size:8.6px;letter-spacing:1.2px;color:var(--ink3);margin-top:3px;display:block}
-.stbar{height:5px;border-radius:3px;background:#EEF1F6;overflow:hidden;margin-top:12px}
+.stat.warn b{color:#9A6E0C}
+.stat span{font-size:8.8px;letter-spacing:1.2px;color:var(--ink3);margin-top:3px;display:block}
+.stbar{height:5px;border-radius:3px;background:#EEF1F6;overflow:hidden;margin-top:13px}
 .stbar i{display:block;height:100%;border-radius:3px;
   background:linear-gradient(90deg,var(--pink-soft,#E9A6C4),var(--pink,#C4176B))}
-.stbar.full i{width:100%;opacity:.4}
+.stat.ok .stbar i{background:linear-gradient(90deg,#8FCFAE,#1E9E62)}
+.stat.bad .stbar i{background:linear-gradient(90deg,#E8A3A9,#D02B36)}
+.stat.warn .stbar i{background:linear-gradient(90deg,#E4CB8E,#9A6E0C)}
 .stat[data-ic="target"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C4176B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.3'/%3E%3Ccircle cx='12' cy='12' r='4.2'/%3E%3C/svg%3E")}
 .stat[data-ic="trend"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C4176B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4,16 9.5,10 13.5,14 20,6'/%3E%3Cpolyline points='14.5,6 20,6 20,11.5'/%3E%3C/svg%3E")}
 .stat[data-ic="growth"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C4176B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17L17 7M17 7H9M17 7v8'/%3E%3C/svg%3E")}
-.stat[data-ic="cal"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C4176B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15' rx='2'/%3E%3Cpath d='M3.5 9.5h17M8 3v4M16 3v4'/%3E%3C/svg%3E")}
-.stat[data-ic="file"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C4176B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z'/%3E%3Cpath d='M15 3v5h5'/%3E%3C/svg%3E")}
-.stat[data-ic="stack"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C4176B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l9 5-9 5-9-5 9-5z'/%3E%3Cpath d='M3 13l9 5 9-5'/%3E%3C/svg%3E")}
 
 /* ── ZONA DE ARRASTRE · icono, boton visible y una ola decorativa que
    no compite con el texto ── */
@@ -3087,7 +3087,10 @@ function renderDistrito(){
   if(SEL===null)return;
   const propios=ITEMS.filter(i=>i.distrito===SEL);
   const meses=new Set(propios.map(i=>i.mes));
-  const ult=propios[0];
+  /* el ultimo informe es el que se SUBIO mas reciente (campo "cargado"),
+     no el de mayor semana/mes — pueden cargarse fuera de orden y lo que
+     importa aqui es "como voy ahora", con la subida mas nueva */
+  const ult=propios.length?propios.slice().sort((a,b)=>new Date(b.cargado)-new Date(a.cargado))[0]:null;
   const reg=regionOf(SEL)||'—';
   const k=(ult&&ult.kpi)||null;
   let chip='';
@@ -3095,9 +3098,16 @@ function renderDistrito(){
     chip=' <span class="kstate '+e[0]+'">'+e[1]+'</span>';}
   $('#heroTitle').innerHTML='<em>'+esc(SEL)+'</em>'+chip;
   const mm=ult?(MES[+String(ult.mes).split('-')[1]-1]||''):'';
+  const meta=propios.length?' · '+propios.length+(propios.length===1?' informe':' informes')+
+    ' · '+meses.size+(meses.size===1?' mes':' meses')+' con reporte':'';
   $('#heroSub').textContent=reg+(ult?' · último informe: semana '+ult.semana+(mm?' de '+mm:''):
-    ' · sin informes cargados');
-  /* los indicadores del ultimo informe mandan sobre los conteos de archivos */
+    ' · sin informes cargados')+meta;
+  /* la fila de tarjetas solo muestra indicadores de negocio reales del
+     ultimo informe cargado — semana/conteos ya quedan en el subtitulo de
+     arriba, asi no se duplica info ni se llena la fila con datos que no
+     dicen como va el distrito. cada tarjeta con % trae su barra de avance
+     real; nunca se inventa una barra para una metrica que no es un avance
+     (p.ej. la variacion de venta comparable no lleva barra). */
   const st=[];
   if(k&&num(k.ventaPpto)>0){
     st.push([p0(num(k.cumplimiento)),'Avance presupuesto',estadoDe(num(k.cumplimiento))[0],num(k.cumplimiento),'target']);
@@ -3105,17 +3115,12 @@ function renderDistrito(){
   }
   if(k&&num(k.ventaCompAnt)>0)
     st.push([pS(num(k.varVenta)),'Venta comparable',num(k.varVenta)>=0?'ok':'bad',null,'growth']);
-  st.push([ult?('S'+ult.semana):'—','Última semana','',null,'cal']);
-  st.push([String(propios.length),'Presentaciones','',null,'file']);
-  st.push([String(meses.size),'Meses con reporte','',null,'stack']);
-  /* las tarjetas con % traen su barra de avance real; las demas solo
-     llevan el acento de color — nunca se inventa un avance que no
-     exista solo para que "se vea completo". */
   $('#stats').innerHTML=st.map(x=>{
     const[vl,lb,state,pct,ic]=x;
-    return '<div class="stat '+(state||'')+'" data-ic="'+ic+'"><b>'+vl+'</b><span>'+lb+'</span>'+
-      '<div class="stbar'+(pct==null?' full':'')+'"><i'+(pct!=null?' style="width:'+Math.max(2,Math.min(100,pct))+'%"':'')+'></i></div></div>';
+    const bar=pct!=null?'<div class="stbar"><i style="width:'+Math.max(2,Math.min(100,pct))+'%"></i></div>':'';
+    return '<div class="stat '+(state||'')+'" data-ic="'+ic+'"><b>'+vl+'</b><span>'+lb+'</span>'+bar+'</div>';
   }).join('');
+  $('#stats').style.display=st.length?'':'none';
   syncPapelera();
   if(!propios.length){
     $('#content').innerHTML=`<div class="empty"><div class="ic">▤</div>
